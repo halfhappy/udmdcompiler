@@ -1,0 +1,22 @@
+{
+  "name": "udmdcompiler",
+  "version": "1.0.0",
+  "description": "Markdown compiler",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamiekpac/udmdcompiler.git"
+  },
+  "author": "Jamie Kerr <jkerr@brandcollective.com.au>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jamiekpac/udmdcompiler/issues"
+  },
+  "homepage": "https://github.com/jamiekpac/udmdcompiler#readme",
+  "dependencies": {
+    "marked": "^0.3.6"
+  }
+}
