@@ -12,17 +12,35 @@ marked.setOptions({
   smartypants: false
 });
 
-// TODO:
-// Attempt to access folder called 'md' if error, handle
-// Iterate through the md folder to get the structure and file names
-// Compile locally into public folder /md
-//
-
 /**
- * Fileprocessor
- * @type {Class}
+ * Class for processing the files from md to html
+ * @type {Fileprocessor}
+ * @example
+ * currentitemdest = filearray[i].replace(src, dest);
+ * const fileprocess = new Fileprocessor();
+ * var filecontent = fs.readFileSync(filearray[i], 'utf-8');
+ * fileprocess.contentprocess(currentitemdest, filecontent);
  */
 class Fileprocessor {
+
+  /**
+   * mofidyextension gets the current filedest checks if its extension is .md and renames it to be .html in the dest
+   * @param  {String} filedest The file destination string
+   * @arg    {String}   currentextension This is the current extension, remaining string after last . in file name.
+   * @arg    {String}   htmlextension Takes the extensionless destination file and simply adds .html to the string for use with fs.renameSync
+   */
+  modifyextension(filedest){
+
+    var currentextension = filedest.substr(filedest.lastIndexOf('.'), 3);
+
+    if(currentextension == '.md'){
+      var extensionless = filedest.substr(0, filedest.lastIndexOf('.'));
+      var htmlextension = extensionless + '.html';
+      console.log('Changed file from', filedest,' to ', htmlextension);
+      fs.renameSync(filedest, htmlextension);
+    }
+
+  };
 
   /**
    * contentprocess
@@ -39,26 +57,28 @@ class Fileprocessor {
       }
 
       fs.writeFile(filedest, res, (err, res) => {
-        console.log('File processed to:',filedest);
+        if (err) {
+          console.log('Write file error.');
+          console.log(err);
+        }
+        this.modifyextension(filedest);
       });
 
     });
-
-
 
   }
 
 }
 
 /**
- * [mdsource description]
- * @type {[type]}
+ * Class for compiling methods including, getrecursivestructure(), clean(), and process()
+ * @type {Compile}
  */
 class Compile {
 
   /**
    * Cleans up the public folder that was generated previously
-   * @param  {String} dest This is the destination folder that will be cleaned (removed recursively)
+   * @param  {String} dest The destination folder that will be cleaned (removed recursively)
    */
   clean(dest){
     console.log('\n');
@@ -84,49 +104,60 @@ class Compile {
   }
 
   /**
-   * process processes the src and dest items, passing them to be compiled, cleaned, created
-   * @param  {String} src   The src folder to compile the markdown from
-   * @param  {String} dest [description]
-   * @return {[type]}      [description]
+   * Get all files with their folder structure recursively from the param root passed in
+   * @param  {String} root The root folder you want to receive the recursive folder file structure from
+   * @return {Array}      Returns an array including each folder file item, this can/should be used as a base method for further processing
+   */
+  getrecursivestructure(root) {
+
+    var dirrec = function(root) {
+      var results = [];
+      var list = fs.readdirSync(root);
+      list.forEach(function(file) {
+          file = root + '/' + file;
+          var stat = fs.statSync(file)
+
+          if (stat && stat.isDirectory()){
+            results = results.concat( dirrec(file) );
+          } else {
+            results.push(file);
+          }
+      });
+      return results;
+    }
+
+    return dirrec(root);
+
+  }
+
+  /**
+   * processes the src and dest items, passing them to be compiled, cleaned, created. This is where the fileprocess.contentprocess is triggered.
+   * @param  {String} src   The src folder to compile the markdown from by getting the recursive structure
+   * @param  {String} dest  Destination for the files to be public, if the dest does not exist, it is created
    */
   process(src, dest) {
 
-    // Check if the dest exists, if it doesn't create it
     if (!fs.existsSync(dest)) {
       fs.mkdirSync(dest);
     }
 
-    var files = fs.readdirSync(src);
+    var filearray = this.getrecursivestructure(src);
+    console.log('FILE ARRAY:',filearray);
 
-    for (var i in files) {
-
-      var currentitem = src + '/' + files[i];
-      var currentitemdest = dest + '/' + files[i];
-      var statsyncitem = fs.statSync(src + '/' + files[i]);
-
-      if ( statsyncitem.isDirectory() ) {
-        //console.log(files[i], 'is a directory');
-        var subsrc = src + '/' + files[i];
-        var subdest = dest + '/' + files[i];
-        this.process(subsrc, subdest);
-      }
-      if ( statsyncitem.isFile() ) {
-        //console.log(files[i], 'is a file');
-
-        // NOTE: getting the contents of the file and passing it to the markdown processor
-        const fileprocess = new Fileprocessor();
-        var filecontent = fs.readFileSync(currentitem, 'utf-8');
-        fileprocess.contentprocess(currentitemdest, filecontent);
-
+    for (var i = 0; i < filearray.length; i++) {
+      var currentitemdest = '';
+      for (var i = 0; i < filearray.length; i++) {
+        if ( filearray[i].startsWith(src) ) {
+          currentitemdest = filearray[i].replace(src, dest);
+          const fileprocess = new Fileprocessor();
+          var filecontent = fs.readFileSync(filearray[i], 'utf-8');
+          fileprocess.contentprocess(currentitemdest, filecontent);
+        }
       }
 
     }
 
-    // TODO: Remove this after testing
-    //this.clean(dest);
-
     return;
-
 
   }
 
